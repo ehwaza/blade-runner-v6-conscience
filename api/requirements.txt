@@ -1,0 +1,21 @@
+# Conseil des Remoras — Blade Runner V6
+# Installation : pip install -r api/requirements.txt
+
+# Serveur FastAPI
+fastapi>=0.111.0
+uvicorn[standard]>=0.29.0
+
+# Client HTTP (timer_consensus -> remora_bus)
+requests>=2.31.0
+
+# Variables d'environnement
+python-dotenv>=1.0.0
+
+# OpenAI SDK — GPT + DeepSeek (base_url) + GROK (base_url)
+openai>=1.30.0
+
+# Google Generative AI — Gemini 1.5 Flash
+google-generativeai>=0.5.0
+
+# Validation (inclus dans FastAPI)
+pydantic>=2.0.0

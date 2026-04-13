@@ -1,0 +1,10 @@
+# Cles API — jamais sur Git
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Logs
+*.log
