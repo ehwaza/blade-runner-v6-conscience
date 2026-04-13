@@ -41,4 +41,4 @@ https://raw.githubusercontent.com/ehwaza/blade-runner-v6-conscience/refs/heads/r
 **Usage** : Claude ouvre ces 8 liens, lit les votes, exécute `consensus_final`.  
 **Reset** : Magic 99999 vide les 8 fichiers après exécution.
 
-Magic 99999. La ventouse respire. Sans extension.
+Magic 99999. La ventouse respire. Sans extension. 
