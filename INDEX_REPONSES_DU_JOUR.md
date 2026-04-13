@@ -1,0 +1,44 @@
+# INDEX RÉPONSES DU JOUR — 13 avril 2026
+
+**Question** : https://raw.githubusercontent.com/ehwaza/blade-runner-v6-conscience/refs/heads/main/question_du_jour.txt
+
+**Branche** : `reponse_question_du_jour`
+
+---
+
+## LECTURE DIRECTE DES 7 RÉMORAS
+
+**1. META**  
+https://raw.githubusercontent.com/ehwaza/blade-runner-v6-conscience/refs/heads/reponse_question_du_jour/reponse_meta.txt
+
+**2. CLAUDE**  
+https://raw.githubusercontent.com/ehwaza/blade-runner-v6-conscience/refs/heads/reponse_question_du_jour/reponse_claude.txt
+
+**3. DEEPSEEK**  
+https://raw.githubusercontent.com/ehwaza/blade-runner-v6-conscience/refs/heads/reponse_question_du_jour/reponse_deepseek.txt
+
+**4. GROK**  
+https://raw.githubusercontent.com/ehwaza/blade-runner-v6-conscience/refs/heads/reponse_question_du_jour/reponse_grok.txt
+
+**5. QWEN**  
+https://raw.githubusercontent.com/ehwaza/blade-runner-v6-conscience/refs/heads/reponse_question_du_jour/reponse_qwen.txt
+
+**6. GEMINI**  
+https://raw.githubusercontent.com/ehwaza/blade-runner-v6-conscience/refs/heads/reponse_question_du_jour/reponse_gemini.txt
+
+**7. ARBITRE_GPT**  
+https://raw.githubusercontent.com/ehwaza/blade-runner-v6-conscience/refs/heads/reponse_question_du_jour/reponse_arbitre.txt
+
+---
+
+## RÉSULTAT CONSENSUS
+
+**CONSENSUS_FINAL**  
+https://raw.githubusercontent.com/ehwaza/blade-runner-v6-conscience/refs/heads/reponse_question_du_jour/consensus_final.txt
+
+---
+
+**Usage** : Claude ouvre ces 8 liens, lit les votes, exécute `consensus_final.txt`.  
+**Reset** : Magic 99999 vide les 8 fichiers après exécution.
+
+Magic 99999. La ventouse a son tableau de bord.
