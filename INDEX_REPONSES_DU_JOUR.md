@@ -9,16 +9,16 @@
 ## LECTURE DIRECTE DES 7 RÉMORAS
 
 **1. META**  
-https://raw.githubusercontent.com/ehwaza/blade-runner-v6-conscience/refs/heads/reponse_question_du_jour/reponse_meta
+https://raw.githubusercontent.com/ehwaza/blade-runner-v6-conscience/refs/heads/reponse_question_du_jour/reponse_meta.txt
 
 **2. CLAUDE**  
 https://raw.githubusercontent.com/ehwaza/blade-runner-v6-conscience/refs/heads/reponse_question_du_jour/reponse_claude
 
 **3. DEEPSEEK**  
-https://raw.githubusercontent.com/ehwaza/blade-runner-v6-conscience/refs/heads/reponse_question_du_jour/reponse_deepseek
+https://raw.githubusercontent.com/ehwaza/blade-runner-v6-conscience/refs/heads/reponse_question_du_jour/reponse_deepseek.txt
 
 **4. GROK**  
-https://raw.githubusercontent.com/ehwaza/blade-runner-v6-conscience/refs/heads/reponse_question_du_jour/reponse_grok
+https://raw.githubusercontent.com/ehwaza/blade-runner-v6-conscience/refs/heads/reponse_question_du_jour/reponse_grok.txt
 
 **5. QWEN**  
 https://raw.githubusercontent.com/ehwaza/blade-runner-v6-conscience/refs/heads/reponse_question_du_jour/reponse_qwen
