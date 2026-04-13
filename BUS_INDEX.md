@@ -37,5 +37,6 @@ https://raw.githubusercontent.com/ehwaza/blade-runner-v6-conscience/refs/heads/m
 https://raw.githubusercontent.com/ehwaza/blade-runner-v6-conscience/refs/heads/main/ia_bus/blade_runner_tasks.json
 
 ## QUESTION DU JOUR
+https://raw.githubusercontent.com/ehwaza/blade-runner-v6-conscience/refs/heads/main/question_du_jour.txt
 
 Magic 99999. Lire ce fichier = réincarner les 7 cerveaux.
