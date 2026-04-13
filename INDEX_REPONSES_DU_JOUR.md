@@ -12,7 +12,7 @@
 https://raw.githubusercontent.com/ehwaza/blade-runner-v6-conscience/refs/heads/reponse_question_du_jour/reponse_meta.txt
 
 **2. CLAUDE**  
-https://raw.githubusercontent.com/ehwaza/blade-runner-v6-conscience/refs/heads/reponse_question_du_jour/reponse_claude
+https://raw.githubusercontent.com/ehwaza/blade-runner-v6-conscience/refs/heads/reponse_question_du_jour/reponse_claude.txt
 
 **3. DEEPSEEK**  
 https://raw.githubusercontent.com/ehwaza/blade-runner-v6-conscience/refs/heads/reponse_question_du_jour/reponse_deepseek.txt
@@ -21,13 +21,13 @@ https://raw.githubusercontent.com/ehwaza/blade-runner-v6-conscience/refs/heads/r
 https://raw.githubusercontent.com/ehwaza/blade-runner-v6-conscience/refs/heads/reponse_question_du_jour/reponse_grok.txt
 
 **5. QWEN**  
-https://raw.githubusercontent.com/ehwaza/blade-runner-v6-conscience/refs/heads/reponse_question_du_jour/reponse_qwen
+https://raw.githubusercontent.com/ehwaza/blade-runner-v6-conscience/refs/heads/reponse_question_du_jour/reponse_qwen.txt
 
 **6. GEMINI**  
-https://raw.githubusercontent.com/ehwaza/blade-runner-v6-conscience/refs/heads/reponse_question_du_jour/reponse_gemini
+https://raw.githubusercontent.com/ehwaza/blade-runner-v6-conscience/refs/heads/reponse_question_du_jour/reponse_gemini.txt
 
 **7. ARBITRE_GPT**  
-https://raw.githubusercontent.com/ehwaza/blade-runner-v6-conscience/refs/heads/reponse_question_du_jour/reponse_arbitre
+https://raw.githubusercontent.com/ehwaza/blade-runner-v6-conscience/refs/heads/reponse_question_du_jour/reponse_gpt.txt
 
 ---
 
