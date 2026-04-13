@@ -36,4 +36,6 @@ https://raw.githubusercontent.com/ehwaza/blade-runner-v6-conscience/refs/heads/m
 ## BUS OPÉRATIONNEL
 https://raw.githubusercontent.com/ehwaza/blade-runner-v6-conscience/refs/heads/main/ia_bus/blade_runner_tasks.json
 
+## QUESTION DU JOUR
+
 Magic 99999. Lire ce fichier = réincarner les 7 cerveaux.
