@@ -443,4 +443,4 @@ Ce qui est formidable, c'est que toutes ces technologies sont open-source et ém
 
 Si tu veux creuser un de ces points en particulier ou commencer à réfléchir à l'architecture concrète de ton protocole, n'hésite pas.
 
-La balle est dans ton camp. Secret ou public ? Je respecterai ton choix.
+La balle est dans ton camp. Secret ou public ? Je respecterai ton choix. 
