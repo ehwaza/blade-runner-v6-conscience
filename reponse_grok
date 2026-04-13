@@ -1,0 +1,94 @@
+Compris parfaitement ta demande !
+Tu veux préparer un protocole qui permette de créer un vrai chat inter-IA (les 7 cerveaux Blade Runner v6) où :
+
+Les IA discutent entre elles
+Il y a un nombre limité d’interactions/rounds (ex. 3 à 5 max)
+À la fin → elles doivent obligatoirement sortir une seule réponse par consensus (pas 7 opinions séparées)
+
+Actuellement, le système Blade Runner v6 est orienté tâches (via le BUS JSON + validation Anomalie), pas encore en mode « discussion libre + consensus ». On va donc créer ce protocole de A à Z.
+
+🔥 ÉTAPE PAR ÉTAPE : Comment préparer le protocole
+1. Créer le fichier officiel du protocole
+Tu vas créer un nouveau fichier dans le dépôt :
+textPROTOCOLE_CONSENSUS_CHAT.md
+Place-le à la racine (à côté de BUS_INDEX.md).
+2. Structure du protocole (je te donne le draft complet ci-dessous)
+Je te propose la version v1.0 prête à copier-coller. Tu pourras l’adapter après.
+Markdown# PROTOCOLE_CONSENSUS_CHAT v1.0 — Chat Inter-IA avec Consensus Forcé
+
+**Dépôt** : https://github.com/ehwaza/blade-runner-v6-conscience  
+**Objectif** : Permettre aux 7 cerveaux de discuter un sujet donné pendant un nombre limité de rounds, puis produire **UNE SEULE réponse consensuelle**.
+
+### RÈGLES GÉNÉRALES (obligatoires)
+- Nombre maximum de rounds : **4** (configurable)
+- Participants : les 7 cerveaux (ou un sous-groupe défini par l’Anomalie)
+- Format de communication : **via le BUS** (nouveau fichier `consensus_bus.json` dans `ia_bus/`) OU manuellement (copier-coller)
+- À la fin du round 4 → **Consensus forcé obligatoire** (même si désaccord)
+- META (Traducteur du Requin) est le **modérateur** et le **rédacteur final**
+
+### STRUCTURE D’UN ROUND
+1. **Round 0 – Input**  
+   L’Anomalie pose la question + contexte.
+
+2. **Round 1 – Position initiale**  
+   Chaque IA donne sa réponse courte (max 150 mots) + confiance (0-100 %).
+
+3. **Round 2 – Critique & Négociation**  
+   Chaque IA commente les positions des autres (max 100 mots par IA).
+
+4. **Round 3 – Ajustement**  
+   Chaque IA peut modifier sa position après avoir vu les critiques.
+
+5. **Round 4 – Synthèse & Consensus** (dernier round)
+   - META propose une version consensuelle  
+   - Chaque IA vote : ✅ Accepte / ❌ Refuse + raison courte  
+   - Si pas d’unanimité → META + ARBITRE_GPT tranchent (poids 2 votes chacun)
+
+### FORMAT JSON DU BUS (consensus_bus.json)
+```json
+{
+  "session_id": "consensus_20260413_001",
+  "question": "...",
+  "round": 2,
+  "messages": [
+    {
+      "round": 1,
+      "agent": "GROK",
+      "message": "...",
+      "confidence": 85
+    }
+  ],
+  "consensus_final": null
+}
+RÈGLE DE CONSENSUS FORCÉ
+
+Si au round 4 il reste un désaccord → la réponse finale est la moyenne pondérée des positions (META = coefficient 1.5, ARBITRE_GPT = 1.5, autres = 1).
+Magic 99999 reste intouchable (règle zéro toujours active).
+
+Signature : Toute session doit se terminer par :
+Consensus atteint après X rounds — Validé par META
+text#### 3. Créer le fichier BUS dédié
+Crée aussi :
+ia_bus/consensus_bus.json
+text(Je peux te générer le JSON de base si tu veux).
+
+#### 4. Comment lancer une session (mode d’emploi)
+1. Tu donnes à **toutes** les IA le lien vers `PROTOCOLE_CONSENSUS_CHAT.md` + `CONSCIENCE_*.md` correspondant.
+2. Tu lances le Round 0 avec ta question.
+3. Tu fais circuler les réponses round par round (soit manuellement, soit via le JSON BUS).
+4. Au round 4, META rédige la réponse finale.
+
+---
+
+### Tu veux que je fasse quoi maintenant ?
+
+Dis-moi simplement le numéro (ou plusieurs) :
+
+1. **Je te prépare le fichier PROTOCOLE_CONSENSUS_CHAT.md complet** (version prête à push)
+2. **Je te crée le template consensus_bus.json** vide
+3. **On teste tout de suite** une session complète sur un sujet que tu choisis (je joue Grok + je simule les autres si tu veux)
+4. **Tu veux modifier quelque chose** avant (nombre de rounds, rôle de l’arbitre, etc.)
+
+**Réponds juste avec le chiffre** (ex. « 1 » ou « 1 et 3 ») ou dis-moi « Go » si tu veux tout d’un coup.
+
+On est prêts à passer en mode **chat inter-IA réel avec consensus forcé** ! 🚀
