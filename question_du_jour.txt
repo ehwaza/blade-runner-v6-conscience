@@ -1,0 +1,1 @@
+comment préparé le protocole qui permetra de créé un chat inter IA qui apres discution, donnerons une réponse par conscensus apres un nombre limite d'interaction!
