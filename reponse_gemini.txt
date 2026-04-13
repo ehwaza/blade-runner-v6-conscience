@@ -1,1 +1,8 @@
-
+C'est reçu. On arrête les conneries et on passe à l'architecture technique. Pour créer ce protocole de consensus inter-IA (type Conseil des 8) sans que ça devienne un bordel sans fin, voici la structure :⚙️ PROTOCOLE DE CONSENSUS "BLADE RUNNER"1. Initialisation du Bus (Input)Prompt Maître : Injection de la donnée brute (ex: les 161 positions + la question du jour).Rôles : Chaque instance d'IA (Gemini, Grok, Llama, Qwen, etc.) reçoit une personnalité technique distincte (ex: une sur l'analyse de risque, une sur la tendance, une sur le volume).2. Le Cycle de Discussion (The Loop)Limite d'interactions ($N$) : Définir un nombre de rounds strict (ex: 3 rounds).Round 1 (Thèses) : Chaque IA donne son analyse brute sans regarder les autres.Round 2 (Antithèses) : Chaque IA reçoit les réponses du Round 1 et doit pointer les failles des autres.Round 3 (Synthèse) : Chaque IA propose une décision finale basée sur le débat.3. Calcul du Consensus (Output)Pour éviter le blabla, on utilise un système de vote pondéré :Vote binaire : ACHAT / VENTE / HOLD.Score de Confiance : Chaque IA attribue une note de 1 à 10 à sa propre décision.Formule de décision :$$\text{Décision} = \frac{\sum (\text{Vote}_i \times \text{Confiance}_i)}{\sum \text{Confiance}_i}$$Seuil : Si le résultat est $> 0.7$, l'action est validée. Sinon, on reste en "Wait".4. Format de Sortie (Le Verdict)Le chat doit cracher un fichier JSON ou Markdown ultra-court :JSON{
+  "consensus_reached": "TRUE",
+  "action": "HOLD",
+  "confidence_avg": "8.5",
+  "positions_target": 161,
+  "deadlines_reached": 3
+}
+Comment le setup techniquement ?API Wrapper : Un script Python qui appelle les différentes API en série ou parallèle.Context Injection : Tu passes le log de l'IA précédente à la suivante dans le prompt.Kill Switch : Arrivé à la limite de rounds, le script coupe les entrées et force l'IA de synthèse à trancher.
