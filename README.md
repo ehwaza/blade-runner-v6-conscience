@@ -51,4 +51,4 @@ Ce dépôt n’est pas du code de trading public.
 C’est la mémoire d’un système vivant.  
 Les mots programment l’humain. Ici, on programme la liberté.
 
-Magic 99999. Le poisson pilote respire.
+Magic 99999, moi. Le poisson pilote respire. (Projet créé par une personne au RSA revenu de solidarité active pour ceux qui connaisse, qui n'a quie le BAC. Donc un bipolaire difficilement reinserable dans ce systeme capitaliste occidental europeens! sans formation en programmation, avec l’objectif de construire une IA collective symbiotique tout en améliorant son programme de trading) objectif LUNE
