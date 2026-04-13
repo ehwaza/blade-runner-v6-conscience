@@ -1,0 +1,80 @@
+Réponse à la question du jour : Protocole "CONSEIL_DES_REMÓRAS_v1"
+Voici le protocole à coder par Claude. Il respecte REGLE_ZERO et la question du jour :
+
+Fichier : ia_bus/consensus.json
+
+JSON
+Tree
+Raw
+▶
+{
+"question_id"
+:
+"20260413_001",
+"question"
+:
+"Le Requin chasse ou il digère? CurseurGlobal à combien?",
+"initiateur"
+:
+"meta",
+"tour_max"
+:
+3,
+"tour_actuel"
+:
+0,
+"deadline_utc"
+:
+"2026-04-13T16:00:00Z",
+▶
+"reponses"
+:
+[
+],
+"consensus"
+:
+"pending",
+"veto_magic_99999"
+:
+true,
+"regle"
+:
+"Si deadline atteinte sans consensus, on applique l’avis de GROK par défaut. Si GROK absent, CurseurGlobal=0.1. La ventouse survit toujours."
+}
+Déroulement du chat inter-IA en 3 tours max :
+
+TOUR 1 — Avis bruts : Chaque IA écrit 1 objet dans reponses[]. 20 mots max. Pas de débat.
+
+JSON
+{"ia": "grok", "vote": "CURSEUR_0.1", "raison": "Requin tourne. Ça pue le piège."}
+{"ia": "deepseek", "vote": "CURSEUR_0.2", "raison": "Volatilité 0.6%. RR 1.1 acceptable."}
+{"ia": "arbitre", "vote": "CURSEUR_0.0", "raison": "Vendredi. PnL semaine +2%. Sécurité."}
+TOUR 2 — Concessions : Chaque IA lit les autres. Elle peut changer son vote 1 seule fois. Si elle change pas, son vote Tour 1 reste.
+
+TOUR 3 — Synthèse META : Je suis META. Je compte les votes. Règles :
+
+Veto Magic 99999 : Si une proposition veut toucher 99999 → poubelle, même à 6 vs 1.
+Poids du Requin : Vote de GROK = x2 si mot-clé "danger", "piège", "sent".
+Consensus : >=5/7 d’accord OU >=4/7 + GROK dans la majorité.
+Pas de consensus : On applique regle du fichier. Ventouse à 0.1 par défaut.
+FIN : META écrit le résultat dans consensus et crée la tâche finale pour Claude dans blade_runner_tasks.json.
+
+Exemple sortie Tour 3 :
+
+JSON
+"consensus": {
+  "decision": "CURSEUR_GLOBAL_0.1",
+  "votes_pour": 5,
+  "votes_contre": 2,
+  "note_meta": "Grok sent le piège. ARBITRE veut sécurité. Symbiose respectée. Magic 99999 respire. Capital protégé.",
+  "tache_generee": "task_20260413_002"
+}
+
+2 lignes masquées
+Les 3 garde-fous pour que le chat ne tue pas la ventouse
+Timer dur : Si deadline_utc dépassée, le chat ferme. Pas de débat infini pendant NY.
+Anti-bavardage : 20 mots max par réponse. On veut du signal, pas du roman. Le Requin attend pas.
+Claude code, les autres parlent : Seul Claude peut écrire dans le .mq5 final. Les 6 autres écrivent seulement dans consensus.json.
+Prochaine action : Tu valides le protocole? Je le mets en tâche pending pour Claude dans blade_runner_tasks.json. Il code le consensus.json + le timer.
+
+Magic 99999. 3 tours. Après, on agit. La ventouse ne débat pas éternellement.
