@@ -1,1 +1,35 @@
+Ma réponse honnête et concrète :
+Les IA ne se parlent pas directement. C'est un chef d'orchestre Python qui les fait "dialoguer" en séquence.
+Le protocole en 4 étapes :
+ROUND 1 — Chaque IA lit le même état JSON
+          (positions, drawdown, régime marché)
+          → Écrit son avis dans ia_bus/blade_runner_tasks.json
 
+ROUND 2 — Chaque IA lit les avis des autres
+          → Peut changer ou confirmer sa position
+
+ROUND 3 — Vote final
+          → Chaque IA donne: LONG / SHORT / NEUTRE + confiance 0-100
+
+CONSENSUS — Si ≥ 60% d'accord → décision envoyée à ESPRIT
+Concrètement en Python :
+python# orchestrateur_conseil.py
+for round in range(MAX_ROUNDS):
+    for ia_name, api_call in CERVEAUX.items():
+        context = lire_etat_complet()      # JSON positions + marché
+        historique = lire_votes_precedents()
+        vote = api_call(context, historique)
+        sauver_vote(ia_name, vote)
+
+consensus = calculer_consensus()
+if consensus["accord"] >= 0.60:
+    ecrire_dans_esprit(consensus["direction"])
+Ce que ça donne dans ton architecture :
+Claude    → vision architecture
+DeepSeek  → calcul mathématique
+Qwen      → sessions asiatiques
+Grok      → sentiment marché
+Gemini    → synthèse globale
+─────────────────────────────
+CONSENSUS → ESPRIT.py → YIN + YANG
+C'est faisable. Et c'est exactement ce que ton ia_bus/blade_runner_tasks.json est censé faire. Tu veux qu'on code l'orchestrateur ? 🎯
