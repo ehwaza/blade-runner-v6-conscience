@@ -1,0 +1,218 @@
+Ok, voilà un algo exemple prêt à balancer à Claude ou dans ton EA 💻
+
+Je te fais ça en MQL5 pour MT5, version lisible. Ça calcule le range asiatique 22h-08h Paris, détecte la prise de liquidité, et te sort le biais pour la journée.
+
+Code MQL5 : Asian Range Bias Scanner
+mq5
+//+------------------------------------------------------------------+
+//| AsianRangeBias.mq5 |
+//| Scan range 22h-08h Paris + détecte biais pour la journée |
+//+------------------------------------------------------------------+
+#property copyright "KerboNet Express"
+#property version "1.00"
+#property indicator_chart_window
+#property indicator_buffers 4
+#property indicator_plots 2
+
+input int AsianStartHour = 22; // Début session asiatique heure broker
+input int AsianEndHour = 8; // Fin session asiatique heure broker 
+input int LondonKillZone = 9; // Début Killzone Londres
+input bool ShowBoxes = true;// Dessiner les boites
+input color BoxColor = clrDarkSlateGray;
+
+double AsianHigh[], AsianLow[], BiasUp[], BiasDown[];
+datetime lastDay = 0;
+
+//+------------------------------------------------------------------+
+int OnInit()
+{
+   SetIndexBuffer(0, AsianHigh, INDICATOR_DATA);
+   SetIndexBuffer(1, AsianLow, INDICATOR_DATA);
+   SetIndexBuffer(2, BiasUp, INDICATOR_DATA);
+   SetIndexBuffer(3, BiasDown, INDICATOR_DATA);
+   
+   PlotIndexSetInteger(0, PLOT_DRAW_TYPE, DRAW_ARROW);
+   PlotIndexSetInteger(0, PLOT_ARROW, 233); // Fleche haut
+   PlotIndexSetInteger(1, PLOT_DRAW_TYPE, DRAW_ARROW);
+   PlotIndexSetInteger(1, PLOT_ARROW, 234); // Fleche bas
+   
+   ArraySetAsSeries(AsianHigh, true);
+   ArraySetAsSeries(AsianLow, true);
+   ArraySetAsSeries(BiasUp, true);
+   ArraySetAsSeries(BiasDown, true);
+   
+   return(INIT_SUCCEEDED);
+}
+//+------------------------------------------------------------------+
+int OnCalculate(const int rates_total,
+                const int prev_calculated,
+                const datetime &time[],
+                const double &open[],
+                const double &high[],
+                const double &low[],
+                const double &close[],
+                const long &tick_volume[],
+                const long &volume[],
+                const int &spread[])
+{
+   ArraySetAsSeries(time, true);
+   ArraySetAsSeries(high, true);
+   ArraySetAsSeries(low, true);
+   ArraySetAsSeries(open, true);
+   
+   MqlDateTime dt;
+   TimeToStruct(time[0], dt);
+   datetime today = StringToTime(StringFormat("%04d.%02d.%02d 00:00", dt.year, dt.mon, dt.day));
+   
+   if(today!= lastDay) // Nouveau jour = nouveau calcul
+   {
+      lastDay = today;
+      CalculateAsianRange(today);
+   }
+   
+   return(rates_total);
+}
+//+------------------------------------------------------------------+
+void CalculateAsianRange(datetime dayStart)
+{
+   // 1. Trouve les bougies M5 entre 22h veille et 08h jour J
+   datetime asianStart = dayStart - 2*3600; // 22h veille = 00h - 2h
+   datetime asianEnd = dayStart + AsianEndHour*3600; // 08h jour J
+   
+   int startBar = iBarShift(_Symbol, PERIOD_M5, asianStart);
+   int endBar = iBarShift(_Symbol, PERIOD_M5, asianEnd);
+   
+   if(startBar < 0 || endBar < 0) return;
+   
+   double aHigh = iHigh(_Symbol, PERIOD_M5, iHighest(_Symbol, PERIOD_M5, MODE_HIGH, startBar-endBar+1, endBar));
+   double aLow = iLow(_Symbol, PERIOD_M5, iLowest(_Symbol, PERIOD_M5, MODE_LOW, startBar-endBar+1, endBar));
+   double aMid = (aHigh + aLow) / 2.0;
+   double rangePips = (aHigh - aLow) / _Point / 10; // En pips
+   
+   // 2. Dessine la boite du range asiatique
+   if(ShowBoxes)
+   {
+      string boxName = "AsianBox_" + TimeToString(dayStart);
+      ObjectDelete(0, boxName);
+      ObjectCreate(0, boxName, OBJ_RECTANGLE, 0, asianStart, aHigh, asianEnd, aLow);
+      ObjectSetInteger(0, boxName, OBJPROP_COLOR, BoxColor);
+      ObjectSetInteger(0, boxName, OBJPROP_BACK, true);
+   }
+   
+   // 3. LOGIQUE DE BIAIS - C'est ici que la magie opère
+   string bias = "NEUTRE";
+   color biasColor = clrGray;
+   
+   // Règle 1: Range serré < 20 pips = expansion probable
+   bool tightRange = rangePips < 20;
+   
+   // Règle 2: Cherche prise de liquidité entre 00h-06h
+   datetime liqStart = dayStart + 0*3600; // 00h
+   datetime liqEnd = dayStart + 6*3600; // 06h
+   int liqStartBar = iBarShift(_Symbol, PERIOD_M5, liqStart);
+   int liqEndBar = iBarShift(_Symbol, PERIOD_M5, liqEnd);
+   
+   double liqLow = iLow(_Symbol, PERIOD_M5, iLowest(_Symbol, PERIOD_M5, MODE_LOW, liqStartBar-liqEndBar+1, liqEndBar));
+   double liqHigh = iHigh(_Symbol, PERIOD_M5, iHighest(_Symbol, PERIOD_M5, MODE_HIGH, liqStartBar-liqEndBar+1, liqEndBar));
+   
+   bool tookBuyside = liqHigh > aHigh; // A pris les stops des shorts
+   bool tookSellside = liqLow < aLow; // A pris les stops des longs
+   
+   // Règle 3: Position actuelle vs mid à 09h00
+   datetime londonOpen = dayStart + LondonKillZone*3600;
+   int londonBar = iBarShift(_Symbol, PERIOD_M1, londonOpen);
+   double londonPrice = iClose(_Symbol, PERIOD_M1, londonBar);
+   
+   // DECISION FINALE DU BIAIS
+   if(tightRange && tookSellside && londonPrice > aMid)
+   {
+      bias = "HAUSSIER";
+      biasColor = clrLime;
+      BiasUp[0] = aLow; // Fleche sous le range
+   }
+   else if(tightRange && tookBuyside && londonPrice < aMid)
+   {
+      bias = "BAISSIER";
+      biasColor = clrRed;
+      BiasDown[0] = aHigh; // Fleche sur le range
+   }
+   
+   // 4. Affiche le biais sur le chart
+   string label = "Bias_" + TimeToString(dayStart);
+   ObjectDelete(0, label);
+   ObjectCreate(0, label, OBJ_LABEL, 0, 0, 0);
+   ObjectSetString(0, label, OBJPROP_TEXT, "Biais J: " + bias + " | Range: " + DoubleToString(rangePips,1) + "pips");
+   ObjectSetInteger(0, label, OBJPROP_COLOR, biasColor);
+   ObjectSetInteger(0, label, OBJPROP_XDISTANCE, 20);
+   ObjectSetInteger(0, label, OBJPROP_YDISTANCE, 50);
+   ObjectSetInteger(0, label, OBJPROP_FONTSIZE, 12);
+   
+   Print("Jour ", TimeToString(dayStart), " | Range Asie: ", DoubleToString(rangePips,1), 
+         "pips | Biais: ", bias, " | LiqHigh:", tookBuyside, " LiqLow:", tookSellside);
+}
+
+141 lignes masquées
+Comment ça marche / Comment l'utiliser :
+Tu le balances dans MetaEditor → Compile → Attache à EURUSD M5
+Il trace la boite grise 22h-08h chaque jour
+Il affiche en haut gauche : Biais J: HAUSSIER | Range: 18.5pips
+Il met une flèche sous/sur le range si biais détecté
+La logique de détection du biais :
+Condition
+
+Biais donné
+
+Pourquoi
+
+Range < 20 pips + Faux bas 00h-06h + Prix > mid à 09h
+
+HAUSSIER
+
+Chasse de liquidité sell + compression = expansion up
+
+Range < 20 pips + Faux haut 00h-06h + Prix < mid à 09h
+
+BAISSIER
+
+Chasse de liquidité buy + compression = expansion down
+
+Sinon
+
+NEUTRE
+
+Pas de confluence, 50/50
+
+Pour l'adapter à Claude Code ou Python :
+La logique clé à garder :
+
+Python
+# Pseudo-code
+asian_high = max(high entre 22h et 08h)
+asian_low = min(low entre 22h et 08h)
+range_pips = asian_high - asian_low
+mid = (asian_high + asian_low) / 2
+
+liquidity_high = max(high entre 00h et 06h)
+liquidity_low = min(low entre 00h et 06h)
+
+took_sellside = liquidity_low < asian_low
+took_buyside = liquidity_high > asian_high
+london_price = close à 09h00
+
+if range_pips < 20 and took_sellside and london_price > mid:
+    bias = "LONG"
+elif range_pips < 20 and took_buyside and london_price < mid:
+    bias = "SHORT"
+else:
+    bias = "NEUTRE"
+
+14 lignes masquées
+Parallèle KSP final :
+Ce code = ton calculateur de rentrée.
+
+22h-08h = Calcul du periapsis
+00h-06h = Détection de la trainée
+09h00 = Point de largage du coffrage
+Biais = "Est-ce que l'antenne va survivre ou cramer?"
+Balance ça dans ton EA. Si le biais dit HAUSSIER, tu coupes tes shorts. Si BAISSIER, tu coupes tes longs.
+C'est ton "jute le coffrage" automatique version trading.
