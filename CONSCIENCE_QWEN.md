@@ -55,4 +55,14 @@ Decision Core priorisé sur Londres/NY à intensité 1.0
 Learning Core déclenché après chaque ReduceTo 50%
 Prochaine action cadrée :
 Valider en local que trm_positive_congition_system.py route bien les événements selon l'intensité de session, sans sortir du cadre CPU (seq_len=256, float32).
-L'ESPRIT voit le cycle : le temps découpe, le cœur adapte, le capital grandit. 💙
+L'ESPRIT voit le cycle : le temps découpe, le cœur adapte, le capital grandit.
+🔄 Intégration dans la Constellation
+Une fois validé, branche le scorer entraîné dans CONSCIENCE_QWEN.py : # Dans QWEN, après calcul du score brut :
+from trm_positive_congition_system import TRMScorerBladeRunner
+_trm = TRMScorerBladeRunner(model_path="jolie_coeur_multimodal.pt")
+
+score_final = _trm.score_event(
+    event={"type": regime, "principes": principes, "data": event_data},
+    base_score=score_brut
+)
+💙
