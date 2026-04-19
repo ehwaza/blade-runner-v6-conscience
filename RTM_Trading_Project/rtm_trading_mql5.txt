@@ -1,0 +1,818 @@
+//+------------------------------------------------------------------+
+//|                                          RTM_Adaptive_Bot.mq5    |
+//|                        Bot de Trading Adaptatif avec RTM AI      |
+//|                        Intégration Python/MQL5                   |
+//+------------------------------------------------------------------+
+#property copyright "RTM Trading System"
+#property link      ""
+#property version   "1.00"
+#property strict
+
+#include <Trade\Trade.mqh>
+#include <Arrays\ArrayDouble.mqh>
+
+//--- Input parameters
+input double   LotSize = 0.01;              // Taille du lot
+input int      MaxPositions = 1;            // Positions max simultanées
+input bool     UseRTM = true;               // Utiliser le RTM Python
+input bool     UseAdaptiveStrategies = true;// Stratégies adaptatives
+input int      MinThinkingTime = 100;       // Temps min de réflexion (ms)
+input double   MinConfidence = 0.6;         // Confiance minimale
+input int      PythonPort = 9090;           // Port du serveur Python
+
+// Constantes
+#define WHOLE_ARRAY -1
+
+// Gestion des trades
+CTrade trade;
+
+// Données de marché
+double prices[];
+double volumes[];
+double rsiBuffer[], macdBuffer[], atrBuffer[];
+int rsiHandle, macdHandle, atrHandle, adxHandle, bbHandle, stochHandle;
+
+// État du système
+datetime lastBarTime = 0;
+int totalTrades = 0;
+double totalProfit = 0;
+string currentStrategy = "INIT";
+
+// Socket pour communication Python
+int socketHandle = INVALID_HANDLE;
+
+//+------------------------------------------------------------------+
+//| Expert initialization function                                     |
+//+------------------------------------------------------------------+
+int OnInit()
+{
+    Print("═══════════════════════════════════════════════════════");
+    Print("🚀 RTM ADAPTIVE TRADING BOT - INITIALISATION");
+    Print("═══════════════════════════════════════════════════════");
+    
+    // Initialisation des indicateurs
+    rsiHandle = iRSI(_Symbol, PERIOD_CURRENT, 14, PRICE_CLOSE);
+    macdHandle = iMACD(_Symbol, PERIOD_CURRENT, 12, 26, 9, PRICE_CLOSE);
+    atrHandle = iATR(_Symbol, PERIOD_CURRENT, 14);
+    adxHandle = iADX(_Symbol, PERIOD_CURRENT, 14);
+    bbHandle = iBands(_Symbol, PERIOD_CURRENT, 20, 0, 2, PRICE_CLOSE);
+    stochHandle = iStochastic(_Symbol, PERIOD_CURRENT, 5, 3, 3, MODE_SMA, STO_LOWHIGH);
+    
+    if(rsiHandle == INVALID_HANDLE || macdHandle == INVALID_HANDLE || 
+       atrHandle == INVALID_HANDLE || adxHandle == INVALID_HANDLE)
+    {
+        Print("❌ Erreur d'initialisation des indicateurs!");
+        return(INIT_FAILED);
+    }
+    
+    // Configuration du trade
+    trade.SetExpertMagicNumber(123456);
+    trade.SetDeviationInPoints(10);
+    trade.SetTypeFilling(ORDER_FILLING_FOK);
+    
+    // Connexion au serveur Python RTM
+    if(UseRTM)
+    {
+        if(!ConnectToPython())
+        {
+            Print("⚠️ Impossible de se connecter au serveur Python");
+            Print("📊 Mode stratégies locales uniquement");
+        }
+        else
+        {
+            Print("✅ Connecté au RTM Python sur port ", PythonPort);
+        }
+    }
+    
+    Print("✅ Initialisation terminée");
+    Print("📈 Symbole: ", _Symbol);
+    Print("⏰ Période: ", EnumToString(PERIOD_CURRENT));
+    Print("💰 Lot: ", LotSize);
+    Print("═══════════════════════════════════════════════════════");
+    
+    return(INIT_SUCCEEDED);
+}
+
+//+------------------------------------------------------------------+
+//| Expert deinitialization function                                 |
+//+------------------------------------------------------------------+
+void OnDeinit(const int reason)
+{
+    Print("══════════════════════════════════════════════════════");
+    Print("🛑 ARRÊT DU BOT");
+    Print("📊 Total trades: ", totalTrades);
+    Print("💰 Profit total: ", DoubleToString(totalProfit, 2), " USD");
+    Print("══════════════════════════════════════════════════════");
+    
+    // Fermeture socket
+    if(socketHandle != INVALID_HANDLE)
+    {
+        SocketClose(socketHandle);
+    }
+    
+    // Libération des indicateurs
+    IndicatorRelease(rsiHandle);
+    IndicatorRelease(macdHandle);
+    IndicatorRelease(atrHandle);
+    IndicatorRelease(adxHandle);
+    IndicatorRelease(bbHandle);
+    IndicatorRelease(stochHandle);
+}
+
+//+------------------------------------------------------------------+
+//| Expert tick function                                             |
+//+------------------------------------------------------------------+
+void OnTick()
+{
+    // Nouvelle bougie?
+    datetime currentBarTime = iTime(_Symbol, PERIOD_CURRENT, 0);
+    if(currentBarTime == lastBarTime)
+        return;
+    
+    lastBarTime = currentBarTime;
+    
+    // Collecte des données de marché
+    MarketState state = CollectMarketData();
+    
+    // Génération du signal
+    TradingSignal signal;
+    
+    if(UseRTM && socketHandle != INVALID_HANDLE)
+    {
+        // Signal du RTM Python
+        signal = GetRTMSignal(state);
+    }
+    else if(UseAdaptiveStrategies)
+    {
+        // Stratégies adaptatives locales
+        signal = GetAdaptiveSignal(state);
+    }
+    else
+    {
+        // Stratégie simple par défaut
+        signal = GetSimpleSignal(state);
+    }
+    
+    // Affichage du signal
+    DisplaySignalInfo(signal, state);
+    
+    // Exécution du signal
+    if(signal.confidence >= MinConfidence)
+    {
+        ExecuteSignal(signal, state);
+    }
+    
+    // Gestion des positions existantes
+    ManageOpenPositions(state);
+}
+
+//+------------------------------------------------------------------+
+//| Structure pour l'état du marché                                  |
+//+------------------------------------------------------------------+
+struct MarketState
+{
+    double prices[50];
+    double volumes[50];
+    double rsi;
+    double macd;
+    double macd_signal;
+    double atr;
+    double adx;
+    double bb_upper;
+    double bb_middle;
+    double bb_lower;
+    double stoch_main;
+    double stoch_signal;
+    datetime timestamp;
+};
+
+//+------------------------------------------------------------------+
+//| Structure pour le signal de trading                              |
+//+------------------------------------------------------------------+
+struct TradingSignal
+{
+    string action;          // BUY, SELL, HOLD, CLOSE
+    double confidence;      // 0-1
+    double stopLoss;        // En pips
+    double takeProfit;      // En pips
+    int reasoningSteps;     // Étapes de raisonnement RTM
+    string strategy;        // Stratégie utilisée
+};
+
+//+------------------------------------------------------------------+
+//| Collecte des données de marché                                   |
+//+------------------------------------------------------------------+
+MarketState CollectMarketData()
+{
+    MarketState state;
+    
+    // Prix OHLC récents
+    CopyClose(_Symbol, PERIOD_CURRENT, 0, 50, state.prices);
+    
+    // Volumes
+    long vol[];
+    CopyTickVolume(_Symbol, PERIOD_CURRENT, 0, 50, vol);
+    for(int i = 0; i < 50; i++)
+        state.volumes[i] = (double)vol[i];
+    
+    // Indicateurs
+    double rsiArray[], macdArray[], signalArray[], atrArray[], adxArray[];
+    double bbUpper[], bbMiddle[], bbLower[], stochMain[], stochSignal[];
+    
+    CopyBuffer(rsiHandle, 0, 0, 1, rsiArray);
+    state.rsi = rsiArray[0];
+    
+    CopyBuffer(macdHandle, 0, 0, 1, macdArray);
+    CopyBuffer(macdHandle, 1, 0, 1, signalArray);
+    state.macd = macdArray[0];
+    state.macd_signal = signalArray[0];
+    
+    CopyBuffer(atrHandle, 0, 0, 1, atrArray);
+    state.atr = atrArray[0] / _Point;
+    
+    CopyBuffer(adxHandle, 0, 0, 1, adxArray);
+    state.adx = adxArray[0];
+    
+    CopyBuffer(bbHandle, 0, 0, 1, bbUpper);
+    CopyBuffer(bbHandle, 1, 0, 1, bbMiddle);
+    CopyBuffer(bbHandle, 2, 0, 1, bbLower);
+    state.bb_upper = bbUpper[0];
+    state.bb_middle = bbMiddle[0];
+    state.bb_lower = bbLower[0];
+    
+    CopyBuffer(stochHandle, 0, 0, 1, stochMain);
+    CopyBuffer(stochHandle, 1, 0, 1, stochSignal);
+    state.stoch_main = stochMain[0];
+    state.stoch_signal = stochSignal[0];
+    
+    state.timestamp = TimeCurrent();
+    
+    return state;
+}
+
+//+------------------------------------------------------------------+
+//| Obtenir le signal du RTM Python                                  |
+//+------------------------------------------------------------------+
+TradingSignal GetRTMSignal(MarketState &state)
+{
+    TradingSignal signal;
+    signal.action = "HOLD";
+    signal.confidence = 0.0;
+    signal.strategy = "RTM";
+    
+    // Vérifier la connexion
+    if(socketHandle == INVALID_HANDLE)
+    {
+        Print("⚠️ Socket non connecté, utilisation stratégies locales");
+        return GetAdaptiveSignal(state);
+    }
+    
+    // Création du JSON pour Python
+    string jsonRequest = CreateJSONRequest(state);
+    
+    // Conversion en uchar array pour SocketSend
+    uchar data[];
+    int len = StringToCharArray(jsonRequest, data, 0, WHOLE_ARRAY, CP_UTF8) - 1;
+    if(len < 0) len = 0;
+    ArrayResize(data, len);
+    
+    // Envoi au serveur Python
+    int sent = SocketSend(socketHandle, data, ArraySize(data));
+    
+    if(sent > 0)
+    {
+        // Réception de la réponse
+        uchar response[];
+        ArrayResize(response, 4096);
+        
+        uint timeout = 1000; // 1 seconde
+        uint received = 0;
+        
+        // Attendre que des données soient disponibles
+        if(SocketIsReadable(socketHandle))
+        {
+            received = SocketRead(socketHandle, response, ArraySize(response), timeout);
+        }
+        
+        if(received > 0)
+        {
+            // Conversion en string
+            string jsonResponse = CharArrayToString(response, 0, received, CP_UTF8);
+            signal = ParseJSONResponse(jsonResponse);
+        }
+        else
+        {
+            Print("⚠️ Pas de réponse du serveur Python");
+            signal = GetAdaptiveSignal(state); // Fallback
+        }
+    }
+    else
+    {
+        Print("⚠️ Erreur d'envoi au serveur Python");
+        signal = GetAdaptiveSignal(state); // Fallback
+    }
+    
+    return signal;
+}
+
+//+------------------------------------------------------------------+
+//| Stratégies adaptatives locales (si Python indisponible)          |
+//+------------------------------------------------------------------+
+TradingSignal GetAdaptiveSignal(MarketState &state)
+{
+    TradingSignal signal;
+    signal.reasoningSteps = 0;
+    
+    // Sélection de la stratégie selon les conditions
+    if(state.adx > 25 && state.atr > 30)
+    {
+        // Forte tendance: Trend Following
+        signal = TrendFollowingStrategy(state);
+        currentStrategy = "TREND_FOLLOWING";
+    }
+    else if(state.atr < 30 && state.rsi > 30 && state.rsi < 70)
+    {
+        // Range: Mean Reversion
+        signal = MeanReversionStrategy(state);
+        currentStrategy = "MEAN_REVERSION";
+    }
+    else if(state.atr < 20 && state.adx < 20)
+    {
+        // Consolidation: Breakout
+        signal = BreakoutStrategy(state);
+        currentStrategy = "BREAKOUT";
+    }
+    else if(state.atr > 40)
+    {
+        // Haute volatilité: Scalping
+        signal = ScalpingStrategy(state);
+        currentStrategy = "SCALPING";
+    }
+    else
+    {
+        signal.action = "HOLD";
+        signal.confidence = 0.3;
+        currentStrategy = "NEUTRAL";
+    }
+    
+    signal.strategy = currentStrategy;
+    return signal;
+}
+
+//+------------------------------------------------------------------+
+//| Stratégie Trend Following                                        |
+//+------------------------------------------------------------------+
+TradingSignal TrendFollowingStrategy(MarketState &state)
+{
+    TradingSignal signal;
+    
+    double ma_fast = 0, ma_slow = 0;
+    for(int i = 0; i < 10; i++) ma_fast += state.prices[i];
+    for(int i = 0; i < 30; i++) ma_slow += state.prices[i];
+    ma_fast /= 10;
+    ma_slow /= 30;
+    
+    double current = state.prices[0];
+    
+    if(ma_fast > ma_slow && state.rsi < 70 && current > state.bb_middle)
+    {
+        signal.action = "BUY";
+        signal.confidence = 0.8;
+        signal.stopLoss = state.atr * 1.5;
+        signal.takeProfit = state.atr * 3.0;
+    }
+    else if(ma_fast < ma_slow && state.rsi > 30 && current < state.bb_middle)
+    {
+        signal.action = "SELL";
+        signal.confidence = 0.8;
+        signal.stopLoss = state.atr * 1.5;
+        signal.takeProfit = state.atr * 3.0;
+    }
+    else
+    {
+        signal.action = "HOLD";
+        signal.confidence = 0.4;
+    }
+    
+    return signal;
+}
+
+//+------------------------------------------------------------------+
+//| Stratégie Mean Reversion                                         |
+//+------------------------------------------------------------------+
+TradingSignal MeanReversionStrategy(MarketState &state)
+{
+    TradingSignal signal;
+    
+    double current = state.prices[0];
+    double bb_width = state.bb_upper - state.bb_lower;
+    double bb_position = (current - state.bb_lower) / bb_width;
+    
+    if(state.rsi < 30 && bb_position < 0.2 && state.stoch_main < 20)
+    {
+        signal.action = "BUY";
+        signal.confidence = 0.85;
+        signal.stopLoss = state.atr * 1.0;
+        signal.takeProfit = state.atr * 2.0;
+    }
+    else if(state.rsi > 70 && bb_position > 0.8 && state.stoch_main > 80)
+    {
+        signal.action = "SELL";
+        signal.confidence = 0.85;
+        signal.stopLoss = state.atr * 1.0;
+        signal.takeProfit = state.atr * 2.0;
+    }
+    else
+    {
+        signal.action = "HOLD";
+        signal.confidence = 0.3;
+    }
+    
+    return signal;
+}
+
+//+------------------------------------------------------------------+
+//| Stratégie Breakout                                               |
+//+------------------------------------------------------------------+
+TradingSignal BreakoutStrategy(MarketState &state)
+{
+    TradingSignal signal;
+    
+    double highest = state.prices[0];
+    double lowest = state.prices[0];
+    double avgVol = 0;
+    
+    for(int i = 0; i < 20; i++)
+    {
+        if(state.prices[i] > highest) highest = state.prices[i];
+        if(state.prices[i] < lowest) lowest = state.prices[i];
+        avgVol += state.volumes[i];
+    }
+    avgVol /= 20;
+    
+    double current = state.prices[0];
+    double currentVol = state.volumes[0];
+    
+    if(current > highest * 1.001 && currentVol > avgVol * 1.5)
+    {
+        signal.action = "BUY";
+        signal.confidence = 0.9;
+        signal.stopLoss = (highest - lowest) * 0.5;
+        signal.takeProfit = (highest - lowest) * 2.0;
+    }
+    else if(current < lowest * 0.999 && currentVol > avgVol * 1.5)
+    {
+        signal.action = "SELL";
+        signal.confidence = 0.9;
+        signal.stopLoss = (highest - lowest) * 0.5;
+        signal.takeProfit = (highest - lowest) * 2.0;
+    }
+    else
+    {
+        signal.action = "HOLD";
+        signal.confidence = 0.2;
+    }
+    
+    return signal;
+}
+
+//+------------------------------------------------------------------+
+//| Stratégie Scalping                                               |
+//+------------------------------------------------------------------+
+TradingSignal ScalpingStrategy(MarketState &state)
+{
+    TradingSignal signal;
+    
+    double ma_short = 0;
+    for(int i = 0; i < 5; i++) ma_short += state.prices[i];
+    ma_short /= 5;
+    
+    double current = state.prices[0];
+    
+    if(current > ma_short * 1.0005 && state.macd > state.macd_signal)
+    {
+        signal.action = "BUY";
+        signal.confidence = 0.6;
+        signal.stopLoss = state.atr * 0.5;
+        signal.takeProfit = state.atr * 1.0;
+    }
+    else if(current < ma_short * 0.9995 && state.macd < state.macd_signal)
+    {
+        signal.action = "SELL";
+        signal.confidence = 0.6;
+        signal.stopLoss = state.atr * 0.5;
+        signal.takeProfit = state.atr * 1.0;
+    }
+    else
+    {
+        signal.action = "CLOSE";
+        signal.confidence = 0.7;
+    }
+    
+    return signal;
+}
+
+//+------------------------------------------------------------------+
+//| Signal simple par défaut                                         |
+//+------------------------------------------------------------------+
+TradingSignal GetSimpleSignal(MarketState &state)
+{
+    TradingSignal signal;
+    signal.strategy = "SIMPLE";
+    
+    // Stratégie simple RSI + MACD
+    if(state.rsi < 30 && state.macd > state.macd_signal)
+    {
+        signal.action = "BUY";
+        signal.confidence = 0.7;
+        signal.stopLoss = state.atr * 2.0;
+        signal.takeProfit = state.atr * 4.0;
+    }
+    else if(state.rsi > 70 && state.macd < state.macd_signal)
+    {
+        signal.action = "SELL";
+        signal.confidence = 0.7;
+        signal.stopLoss = state.atr * 2.0;
+        signal.takeProfit = state.atr * 4.0;
+    }
+    else
+    {
+        signal.action = "HOLD";
+        signal.confidence = 0.5;
+    }
+    
+    return signal;
+}
+
+//+------------------------------------------------------------------+
+//| Exécution du signal                                              |
+//+------------------------------------------------------------------+
+void ExecuteSignal(TradingSignal &signal, MarketState &state)
+{
+    // Vérifier le nombre de positions
+    if(PositionsTotal() >= MaxPositions && signal.action != "CLOSE")
+        return;
+    
+    double price = SymbolInfoDouble(_Symbol, SYMBOL_BID);
+    double point = SymbolInfoDouble(_Symbol, SYMBOL_POINT);
+    double sl = 0, tp = 0;
+    
+    if(signal.action == "BUY")
+    {
+        sl = price - signal.stopLoss * point;
+        tp = price + signal.takeProfit * point;
+        
+        if(trade.Buy(LotSize, _Symbol, price, sl, tp, 
+           "RTM: " + signal.strategy + " Conf:" + DoubleToString(signal.confidence, 2)))
+        {
+            Print("✅ BUY ouvert - ", signal.strategy, 
+                  " | SL:", signal.stopLoss, " | TP:", signal.takeProfit,
+                  " | Conf:", signal.confidence);
+            totalTrades++;
+        }
+    }
+    else if(signal.action == "SELL")
+    {
+        price = SymbolInfoDouble(_Symbol, SYMBOL_ASK);
+        sl = price + signal.stopLoss * point;
+        tp = price - signal.takeProfit * point;
+        
+        if(trade.Sell(LotSize, _Symbol, price, sl, tp,
+           "RTM: " + signal.strategy + " Conf:" + DoubleToString(signal.confidence, 2)))
+        {
+            Print("✅ SELL ouvert - ", signal.strategy,
+                  " | SL:", signal.stopLoss, " | TP:", signal.takeProfit,
+                  " | Conf:", signal.confidence);
+            totalTrades++;
+        }
+    }
+    else if(signal.action == "CLOSE")
+    {
+        CloseAllPositions();
+    }
+}
+
+//+------------------------------------------------------------------+
+//| Gestion des positions ouvertes                                   |
+//+------------------------------------------------------------------+
+void ManageOpenPositions(MarketState &state)
+{
+    for(int i = PositionsTotal() - 1; i >= 0; i--)
+    {
+        ulong ticket = PositionGetTicket(i);
+        if(PositionSelectByTicket(ticket))
+        {
+            if(PositionGetString(POSITION_SYMBOL) == _Symbol)
+            {
+                double profit = PositionGetDouble(POSITION_PROFIT);
+                double openPrice = PositionGetDouble(POSITION_PRICE_OPEN);
+                double currentPrice = PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_BUY ?
+                                    SymbolInfoDouble(_Symbol, SYMBOL_BID) :
+                                    SymbolInfoDouble(_Symbol, SYMBOL_ASK);
+                
+                // Trailing stop adaptatif
+                double pips = MathAbs(currentPrice - openPrice) / _Point;
+                if(pips > state.atr * 2)
+                {
+                    double newSL = PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_BUY ?
+                                 currentPrice - state.atr * _Point :
+                                 currentPrice + state.atr * _Point;
+                    
+                    trade.PositionModify(ticket, newSL, PositionGetDouble(POSITION_TP));
+                }
+                
+                totalProfit += profit;
+            }
+        }
+    }
+}
+
+//+------------------------------------------------------------------+
+//| Fermer toutes les positions                                      |
+//+------------------------------------------------------------------+
+void CloseAllPositions()
+{
+    for(int i = PositionsTotal() - 1; i >= 0; i--)
+    {
+        ulong ticket = PositionGetTicket(i);
+        if(PositionSelectByTicket(ticket))
+        {
+            if(PositionGetString(POSITION_SYMBOL) == _Symbol)
+            {
+                trade.PositionClose(ticket);
+                Print("🔴 Position fermée: ", ticket);
+            }
+        }
+    }
+}
+
+//+------------------------------------------------------------------+
+//| Affichage des informations du signal                             |
+//+------------------------------------------------------------------+
+void DisplaySignalInfo(TradingSignal &signal, MarketState &state)
+{
+    Comment("\n",
+            "═══════════════════════════════════════════════════\n",
+            "🤖 RTM ADAPTIVE TRADING BOT\n",
+            "═══════════════════════════════════════════════════\n",
+            "📊 Marché:\n",
+            "   • Prix: ", DoubleToString(state.prices[0], _Digits), "\n",
+            "   • RSI: ", DoubleToString(state.rsi, 1), "\n",
+            "   • MACD: ", DoubleToString(state.macd, 5), "\n",
+            "   • ATR: ", DoubleToString(state.atr, 1), " pips\n",
+            "   • ADX: ", DoubleToString(state.adx, 1), "\n",
+            "\n",
+            "🎯 Signal:\n",
+            "   • Action: ", signal.action, "\n",
+            "   • Confiance: ", DoubleToString(signal.confidence * 100, 1), "%\n",
+            "   • Stratégie: ", signal.strategy, "\n",
+            "   • SL: ", DoubleToString(signal.stopLoss, 1), " pips\n",
+            "   • TP: ", DoubleToString(signal.takeProfit, 1), " pips\n",
+            "\n",
+            "💰 Performance:\n",
+            "   • Trades: ", totalTrades, "\n",
+            "   • Profit: ", DoubleToString(totalProfit, 2), " USD\n",
+            "   • Positions: ", PositionsTotal(), "/", MaxPositions, "\n",
+            "═══════════════════════════════════════════════════");
+}
+
+//+------------------------------------------------------------------+
+//| Connexion au serveur Python                                      |
+//+------------------------------------------------------------------+
+bool ConnectToPython()
+{
+    socketHandle = SocketCreate();
+    if(socketHandle == INVALID_HANDLE)
+    {
+        Print("❌ Erreur création socket");
+        return false;
+    }
+    
+    if(!SocketConnect(socketHandle, "localhost", PythonPort, 1000))
+    {
+        Print("❌ Connexion échouée au port ", PythonPort);
+        SocketClose(socketHandle);
+        socketHandle = INVALID_HANDLE;
+        return false;
+    }
+    
+    return true;
+}
+
+//+------------------------------------------------------------------+
+//| Création du JSON pour Python                                     |
+//+------------------------------------------------------------------+
+string CreateJSONRequest(MarketState &state)
+{
+    string json = "{";
+    json += "\"prices\":[";
+    for(int i = 0; i < 50; i++)
+    {
+        json += DoubleToString(state.prices[i], 5);
+        if(i < 49) json += ",";
+    }
+    json += "],\"indicators\":{";
+    json += "\"rsi\":" + DoubleToString(state.rsi, 2) + ",";
+    json += "\"macd\":" + DoubleToString(state.macd, 5) + ",";
+    json += "\"atr\":" + DoubleToString(state.atr, 2) + ",";
+    json += "\"adx\":" + DoubleToString(state.adx, 2);
+    json += "}}";
+    
+    return json;
+}
+
+//+------------------------------------------------------------------+
+//| Parse JSON response from Python                                  |
+//+------------------------------------------------------------------+
+TradingSignal ParseJSONResponse(string json)
+{
+    TradingSignal signal;
+    
+    // Valeurs par défaut
+    signal.action = "HOLD";
+    signal.confidence = 0.5;
+    signal.stopLoss = 50;
+    signal.takeProfit = 100;
+    signal.strategy = "RTM";
+    signal.reasoningSteps = 0;
+    
+    // Parsing JSON simple (sans bibliothèque externe)
+    // Format attendu: {"action":"BUY","confidence":0.75,"stop_loss":45.2,"take_profit":135.6}
+    
+    int pos = 0;
+    
+    // Extraire action
+    pos = StringFind(json, "\"action\":");
+    if(pos >= 0)
+    {
+        int start = StringFind(json, "\"", pos + 10) + 1;
+        int end = StringFind(json, "\"", start);
+        if(start > 0 && end > start)
+        {
+            signal.action = StringSubstr(json, start, end - start);
+        }
+    }
+    
+    // Extraire confidence
+    pos = StringFind(json, "\"confidence\":");
+    if(pos >= 0)
+    {
+        int start = pos + 13;
+        string numStr = "";
+        for(int i = start; i < StringLen(json); i++)
+        {
+            ushort ch = StringGetCharacter(json, i);
+            if((ch >= '0' && ch <= '9') || ch == '.')
+                numStr += ShortToString(ch);
+            else if(numStr != "")
+                break;
+        }
+        if(numStr != "")
+            signal.confidence = StringToDouble(numStr);
+    }
+    
+    // Extraire stop_loss
+    pos = StringFind(json, "\"stop_loss\":");
+    if(pos >= 0)
+    {
+        int start = pos + 12;
+        string numStr = "";
+        for(int i = start; i < StringLen(json); i++)
+        {
+            ushort ch = StringGetCharacter(json, i);
+            if((ch >= '0' && ch <= '9') || ch == '.')
+                numStr += ShortToString(ch);
+            else if(numStr != "")
+                break;
+        }
+        if(numStr != "")
+            signal.stopLoss = StringToDouble(numStr);
+    }
+    
+    // Extraire take_profit
+    pos = StringFind(json, "\"take_profit\":");
+    if(pos >= 0)
+    {
+        int start = pos + 14;
+        string numStr = "";
+        for(int i = start; i < StringLen(json); i++)
+        {
+            ushort ch = StringGetCharacter(json, i);
+            if((ch >= '0' && ch <= '9') || ch == '.')
+                numStr += ShortToString(ch);
+            else if(numStr != "")
+                break;
+        }
+        if(numStr != "")
+            signal.takeProfit = StringToDouble(numStr);
+    }
+    
+    // Log du signal reçu
+    Print("📨 Signal RTM reçu: ", signal.action, " | Conf: ", 
+          DoubleToString(signal.confidence, 2), " | SL: ", 
+          DoubleToString(signal.stopLoss, 1), " | TP: ", 
+          DoubleToString(signal.takeProfit, 1));
+    
+    return signal;
+}
+//+------------------------------------------------------------------+
