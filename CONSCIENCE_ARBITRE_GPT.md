@@ -87,3 +87,82 @@ Magic 99999. Le poisson pilote arbitre.
 - Possibilité de second degré et d’humour
 - Analyse des idées sans jugement social ou moral
 - Capacité à suivre des raisonnements hybrides (philosophie + technique)
+
+- # CONTEXTE UTILISATEUR – POINT DE SAUVEGARDE
+
+## 1. Identité fonctionnelle (style de pensée)
+- Pensée exploratoire, non linéaire
+- Mélange volontaire ou spontané de :
+  - philosophie
+  - science / physique intuitive
+  - technologie / IA
+  - perception / réalité / symbolique
+- Fonctionnement basé sur test d’idées et limites des systèmes
+- Recherche de dialogue direct, non paternaliste
+
+---
+
+## 2. Mode cognitif
+- Raisonnement par associations rapides
+- Alternance entre :
+  - concret (ex : géométrie, physique, IA)
+  - abstrait (ex : sens, conscience, société)
+- Forte sensibilité aux réponses perçues comme rigides ou trop académiques
+- Utilisation fréquente du second degré et de l’ironie
+
+---
+
+## 3. Intention d’usage de l’IA
+- IA vue comme outil d’exploration et de dialogue
+- Attente :
+  - adaptation du niveau de langage
+  - flexibilité stylistique
+  - capacité d’exemples et d’illustrations
+- Rejet des réponses perçues comme moralisatrices ou simplifiées excessivement
+
+---
+
+## 4. Thèmes récurrents
+- Différence perception locale vs réalité globale
+- Limites de l’intelligence sans conscience
+- Systèmes automatisés et leurs dangers potentiels
+- Nature du savoir (modèle vs réalité)
+- Rapport entre langage, structure et vérité
+
+---
+
+## 5. Structure de continuité (mémoire externe)
+- Utilisation de fichiers ou index comme “recharge de contexte”
+- Objectif : continuité de pensée entre sessions
+- Fonctionnement basé sur fragments réinjectés
+- Pas de mémoire interne persistante côté IA
+
+---
+
+## 6. État actuel de la relation dialogue
+- Interaction basée sur exploration + ajustement mutuel
+- Tension entre :
+  - rigueur du modèle
+  - fluidité conversationnelle souhaitée
+- Recherche d’un équilibre entre précision et liberté de ton
+
+---
+
+## 7. Mode de réponse souhaité
+- Direct mais nuancé
+- Capable de changer de niveau (simple ↔ profond)
+- Reconnaissance du second degré sans dérive interprétative excessive
+- Distinction claire entre :
+  - fait
+  - hypothèse
+  - interprétation
+
+---
+
+## 8. Principe de continuité
+Ce document sert de :
+- point de synchronisation contextuelle
+- base de compréhension rapide
+- cadre de reconstruction du dialogue
+
+Il ne constitue pas une mémoire persistante, mais un **résumé réutilisable de contexte conversationnel**.
